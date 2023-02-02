@@ -1,6 +1,6 @@
 <template>
   <view>
-    <view class="title-box" @click="NFClistener">
+    <view class="title-box" @click="nfcRead">
       {{ title }}
     </view>
     <view style="margin: 30upx">
@@ -131,11 +131,9 @@ let NFCAdapter = null;
 let NFCTab = null;
 export default {
   onLoad() {
-    this.initDevice();
+    this.nfcRead();
   },
-  onUnload() {
-    this.closeNFC();
-  },
+  onUnload() {},
   onHide() {},
   data() {
     return {
@@ -157,6 +155,77 @@ export default {
     };
   },
   methods: {
+    nfcRead() {
+      console.log("nfc");
+      const nfc = wx.getNFCAdapter();
+      this.nfc = nfc;
+      function discoverHandler(res) {
+        console.log("discoverHandler", res);
+        const data = new Uint8Array(res.id);
+        let str = "";
+        data.forEach((e) => {
+          let item = e.toString(16);
+          if (item.length == 1) {
+            item = "0" + item;
+          }
+          item = item.toUpperCase();
+          console.log(item);
+          str += item;
+        });
+        console.log(str);
+        wx.showToast({
+          title: "读取成功！",
+          icon: "none",
+        });
+      }
+      nfc.startDiscovery({
+        success(res) {
+          console.log(res);
+          wx.showToast({
+            title: "NFC读取功能已开启！",
+            icon: "none",
+          });
+          nfc.onDiscovered(discoverHandler);
+        },
+        fail(err) {
+          console.log("failed to discover:", err);
+          if (!err.errCode) {
+            wx.showToast({
+              title: "请检查NFC功能是否正常!",
+              icon: "none",
+            });
+            return;
+          }
+          switch (err.errCode) {
+            case 13000:
+              wx.showToast({
+                title: "设备不支持NFC!",
+                icon: "none",
+              });
+              break;
+            case 13001:
+              wx.showToast({
+                title: "系统NFC开关未打开!",
+                icon: "none",
+              });
+              break;
+            case 13019:
+              wx.showToast({
+                title: "用户未授权!",
+
+                icon: "none",
+              });
+              break;
+            case 13010:
+              wx.showToast({
+                title: "未知错误!",
+                icon: "none",
+              });
+              break;
+          }
+        },
+      });
+    },
     // 初始化 NFC 模块。获取实例
     initDevice() {
       console.log("initDevice");
@@ -195,6 +264,8 @@ export default {
         console.log("onDiscovered callback=>", callback);
         let aid = parseInt(ab2hex(callback.id), 16);
         console.log(aid);
+        const ArrayBufferMsg = byteToString(new Uint8Array(callback.id));
+        console.log("ArrayBufferMsg:", ArrayBufferMsg);
         if (callback.messages) {
           let cordsArray = callback.messages[0].records;
           cordsArray.find((item) => {
