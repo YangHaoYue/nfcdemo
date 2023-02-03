@@ -173,6 +173,7 @@ export default {
           str += item;
         });
         console.log(str);
+        console.log(byteToString(data));
         wx.showToast({
           title: "读取成功！",
           icon: "none",
